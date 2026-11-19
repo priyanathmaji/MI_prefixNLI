@@ -3,7 +3,7 @@
 **Prepared for:** Research Manager
 **Prepared by:** Priyanath Maji / pmaji3@gatech.edu
 **Date:** 11/18/2026
-**Status:** Proposal for review (v2: adds judge-free SAE extension)
+**Status:** Draft for friendly review (v2: adds judge-free SAE extension)
 
 ---
 
@@ -51,14 +51,14 @@ The result will be a detector that is more reliable, cheaper to run, and explain
 
 **Total duration:** 16 weeks (previously 12; the extension adds 4 weeks).
 
-## 5. Key Decisions Needed
+## 5. Points for Discussion
 
-1. **Approve the extension** (judge-free SAE detection) and the revised 16-week timeline.
-2. **Threshold method:** Approve either a conformal prediction approach (guarantees a target error rate under standard assumptions) or a simpler target-based method. Recommendation: conformal prediction, as it provides a stronger guarantee.
-3. **Generator model:** Confirm the generator to use. Recommendation: choose a model for which a pretrained SAE already exists, to avoid training one. This will be verified in Weeks 1–2.
-4. **Target venue:** Confirm whether the first target is a workshop (faster, lower bar) or a main conference track (slower, higher bar). Recommendation: workshop first, then main track.
-5. **Compute:** Approve roughly 100–140 GPU-hours on a single A100-class GPU (estimate; see Section 6), plus storage for sparse SAE features. Storage will be sized in a Week 2 pilot.
-6. **Ownership:** Confirm who will own the code release and data licensing checks.
+1. **Extension:** Feedback on the judge-free SAE extension and the revised 16-week timeline.
+2. **Threshold method:** Input on either a conformal prediction approach (guarantees a target error rate under standard assumptions) or a simpler target-based method. Recommendation: conformal prediction, as it provides a stronger guarantee.
+3. **Generator model:** Thoughts on the generator to use. Recommendation: choose a model for which a pretrained SAE already exists, to avoid training one. This will be verified in Weeks 1–2.
+4. **Target venue:** Thoughts on whether the first target is a workshop (faster, lower bar) or a main conference track (slower, higher bar). Recommendation: workshop first, then main track.
+5. **Compute:** Estimated at roughly 100–140 GPU-hours on a single A100-class GPU (estimate; see Section 6), plus storage for sparse SAE features. Storage will be sized in a Week 2 pilot.
+6. **Ownership:** Thoughts on who will own the code release and data licensing checks.
 
 ## 6. Resources
 
@@ -106,7 +106,7 @@ The result will be a detector that is more reliable, cheaper to run, and explain
 
 ## 10. Next Steps
 
-1. Manager review of this plan and the decisions in Section 5.
+1. Friendly review of this plan and the points in Section 5.
 2. Access the published detector code and benchmark datasets.
 3. Identify a generator model with a matching pretrained SAE, and run a sizing pilot for storage and compute.
-4. Run the first reproduction check within two weeks of approval.
+4. Run the first reproduction check within two weeks of starting the project.
