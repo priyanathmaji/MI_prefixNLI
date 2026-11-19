@@ -1,114 +1,112 @@
-# Action Plan: Mechanistic Interpretability for Prefix-Level Hallucination Detection
+# Research Plan: Mechanistic Analysis of Prefix-Level Hallucination Detection
 
-## 1. Background and Positioning
+**Prepared for:** Research Manager
+**Prepared by:** Priyanath Maji / pmaji3@gatech.edu
+**Date:** 11/18/2026
+**Status:** Proposal for review (v2: adds judge-free SAE extension)
 
-**Base paper:** Harary et al., *PrefixNLI: Detecting Factual Inconsistencies as Soon as They Arise* (arXiv 2511.01359). The paper introduces MiniTruePrefixes, a LLaMA-3.2-1B NLI model fine-tuned to judge whether a text prefix is entailed by its source. It uses the output probability of the "1" token with a fixed threshold (τ = 0.5) and applies a log-odds penalty during controlled decoding.
+---
 
-**Assessment:** The base paper is **not mechanistic interpretability**. It is a black-box, output-level method. Training updates only the final layer, and the verdict is read from output probabilities. No internal representations, circuits, or causal interventions are analyzed.
+## 1. Summary
 
-**Our contribution has two parts:**
+Large language models sometimes generate statements that are not supported by their source material. Current detectors check these statements only after a full answer is written. A recent method, PrefixNLI (Harary et al., 2025), checks each partial answer as it is generated, which allows errors to be caught earlier. However, PrefixNLI relies on a separate external judge model, which adds cost and is itself a black box.
 
-1. **Statistical:** A calibrated, prefix-length-aware decision threshold to replace the fixed τ = 0.5 (non-MI, calibration).
-2. **Mechanistic:** Explain where and how the entailment decision forms inside the model, and validate it causally (MI).
+This project extends PrefixNLI in three ways:
 
-**Research question:** Where in MiniTruePrefixes does the unfaithfulness signal for a prefix emerge, is it causally used for the verdict, and can a mechanistically grounded score detect hallucinations earlier and more reliably than the output probability?
+1. **Better decision thresholds.** The existing method uses a fixed cutoff (0.5) for every situation. We will calibrate the cutoff statistically, so that the rate of missed errors is controlled and known in advance.
+2. **Understanding the model's internals.** We will examine the detector's internal workings to learn where and how it recognizes unsupported content, and test whether those internal signals are the actual cause of its decisions.
+3. **Judge-free detection from the generator itself (new in v2).** Instead of relying on an external NLI judge, we will test whether the text generator's own internal activations, decomposed into interpretable features with sparse autoencoders (SAEs), already carry a signal that flags unsupported content as it is produced. If they do, hallucinations can be detected with no second model and no extra judge calls.
 
-## 2. Hypotheses
+The result will be a detector that is more reliable, cheaper to run, and explainable, which matters for deploying AI systems safely.
 
-- **H1 (Localization):** The unfaithfulness signal is linearly decodable from intermediate layers before the final layer, and becomes decodable earlier for longer prefixes.
-- **H2 (Causality):** A small set of attention heads or MLP directions causally drives the verdict. Ablating them changes predictions on faithful and unfaithful prefixes.
-- **H3 (Failure mechanism):** False positives (33% of FP in the base paper) are driven by lexical-overlap components, and can be identified and reduced by targeted intervention.
-- **H4 (Early detection):** An internal-probe score beats output probability for prefixes in the 0–32% length bin, where the base paper reports F1 of only 27.0.
-- **H5 (Calibration):** A prefix-length-aware threshold controls the false-negative rate at a target level better than τ = 0.5.
+## 2. Goals
 
-## 3. Experimental Plan
+- Determine whether the detector's internal signals identify unsupported content earlier than its output does.
+- Replace the fixed cutoff with a calibrated one, and measure the improvement.
+- Identify which internal components cause the detector's errors, and whether they can be corrected.
+- **New:** Determine whether sparse, interpretable SAE features in the generator flag unsupported content during generation, without an external judge.
+- **New:** Test whether those features causally influence whether the generator produces unsupported content.
+- Produce a paper suitable for an AI safety or interpretability workshop, followed by a main-track submission.
 
-### Phase 1: Reproduction (Weeks 1–2)
+## 3. Scope
 
-- Obtain code and models from https://github.com/sapirharary/PrefixNLI.
-- Reproduce the intrinsic evaluation on RAGTruthPrefixes and SummEditsPrefixes. Target F1 (unfaithful class): SummEdits 78.1, RAGTruth 47.6.
-- Reproduce the baseline comparison against MiniTrue and MiniCheck.
-- Reproduce the per-prefix-length results (Figure 4).
-- **Deliverable:** Reproduction report with confidence intervals matching the paper.
+**In scope:** Analysis of an open 1-billion-parameter detector model; analysis of an open generator model with an existing pretrained SAE; evaluation on two existing public benchmarks; use of the generator to produce news summaries and retrieval-augmented answers.
 
-### Phase 2: Layer-wise Probing (Weeks 3–4)
+**Out of scope:** Training new large models; training new SAEs unless no suitable pretrained SAE exists (see Risks); building a production system; evaluation on non-English text or domains other than news and retrieval-augmented answers.
 
-- Extract residual-stream activations at the verdict position for every layer of MiniTruePrefixes.
-- Train linear probes (logistic regression with L2 regularization) per layer to predict gold entailment labels.
-- Stratify by prefix-length bin (0–32%, 32–64%, 64–100%, 100%).
-- Controls: random-direction probes, length-only probes, and probes trained on shuffled labels.
-- **Deliverable:** Layer-by-prefix-length probe accuracy heatmap, plus a figure showing where the signal first becomes decodable.
+## 4. Timeline
 
-### Phase 3: Causal Localization (Weeks 5–6)
+| Weeks | Milestone | Outcome |
+|---|---|---|
+| 1–2 | Reproduce published results; confirm generator model and pretrained SAE availability | Confirmed baseline numbers; chosen generator |
+| 3–4 | Locate where the detector's internal signals form | Map of signal strength by model depth and answer length |
+| 5–6 | Identify components that cause decisions | Ranked list of influential components |
+| 7 | Analyze error types | Explanation of main failure modes |
+| 8–9 | Compare detection methods and calibrate thresholds | Head-to-head results against the published method |
+| 10–11 | **Extension A:** Extract SAE features from the generator on labeled prefixes; discover candidate features | Candidate feature set; feature interpretations |
+| 12 | **Extension B:** Evaluate judge-free SAE detector against the NLI judge and baselines | Detection comparison, including cost per prefix |
+| 13 | **Extension C:** Test causal effect of features on generation; combine with generation experiment | Faithfulness, quality, and speed results |
+| 14–15 | Robustness checks across datasets and controls | Robustness results |
+| 16 | Write-up and code release | Draft paper and code release |
 
-- Activation patching: for FP and FN examples, patch activations from a correct run into an incorrect run, one component at a time (attention heads, MLP outputs).
-- Head and MLP ablations: zero or mean-ablate candidate components and measure verdict flips.
-- Use the probe direction from Phase 2 to test whether intervening along it changes the verdict.
-- **Deliverable:** Ranked list of causally important components with effect sizes and error bars.
+**Total duration:** 16 weeks (previously 12; the extension adds 4 weeks).
 
-### Phase 4: Failure Analysis (Week 7)
+## 5. Key Decisions Needed
 
-- Take the base paper's error categories (surface-level heuristic bias, generic prediction error, missed inference) and check which components drive each.
-- Test whether lexical-overlap heads are necessary for the surface-heuristic false positives, by ablating them and checking whether those errors disappear.
-- **Deliverable:** Mapping from error type to internal mechanism.
+1. **Approve the extension** (judge-free SAE detection) and the revised 16-week timeline.
+2. **Threshold method:** Approve either a conformal prediction approach (guarantees a target error rate under standard assumptions) or a simpler target-based method. Recommendation: conformal prediction, as it provides a stronger guarantee.
+3. **Generator model:** Confirm the generator to use. Recommendation: choose a model for which a pretrained SAE already exists, to avoid training one. This will be verified in Weeks 1–2.
+4. **Target venue:** Confirm whether the first target is a workshop (faster, lower bar) or a main conference track (slower, higher bar). Recommendation: workshop first, then main track.
+5. **Compute:** Approve roughly 100–140 GPU-hours on a single A100-class GPU (estimate; see Section 6), plus storage for sparse SAE features. Storage will be sized in a Week 2 pilot.
+6. **Ownership:** Confirm who will own the code release and data licensing checks.
 
-### Phase 5: Detection and Calibration (Weeks 8–9)
+## 6. Resources
 
-- Build the internal-probe detector and compare it to output-probability detection (the base paper's method) on AUROC and F1, separately for each prefix-length bin.
-- Statistical cutoff: calibrate per prefix length using conformal prediction or a target false-negative rate. Compare against the fixed τ = 0.5 and against a global calibrated threshold.
-- Report calibration error (ECE) for both the output score and the probe score.
-- **Deliverable:** Detector comparison table and calibration plots.
+- **Compute:** One A100 80GB GPU, estimated at 100–140 hours in total. The largest shares are generation experiments (about 45 hours) and SAE feature extraction over labeled prefixes (estimated 20–30 hours). These are estimates and will be refined after the Week 2 pilot.
+- **Storage:** Sparse SAE features are stored instead of raw activations to keep storage manageable. The final size will be determined in the Week 2 pilot.
+- **Data:** Two public benchmarks (RAGTruth and SummEdits) and two summarization datasets (CNN/DM and XSum). All are publicly available; licenses will be checked before use. Benchmark annotations are used as labels for training and evaluation only; no external judge is needed at detection time.
+- **Models:** One open detector model (1B); one open generator model with a matching pretrained SAE (to be confirmed).
+- **Software:** Open-source tools for model analysis, SAE encoding, and inference.
+- **People:** Individual
 
-### Phase 6: Causal Steering in Decoding (Week 10)
+## 7. Risks and Mitigations
 
-- Apply the identified direction or ablation during controlled decoding on CNN/DM and XSum, using the base paper's setup (LLaMA-3.2-1B/3B/8B generators, MiniCheck and GPT-4.1 faithfulness metrics, ROUGE-L and MAUVE for quality).
-- Compare against the base paper's Prefix method and Vanilla decoding.
-- **Deliverable:** Faithfulness vs. quality vs. latency table.
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Observed signals reflect answer length rather than accuracy | Misleading conclusions | Include controls that remove length effects |
+| Causal effects are weak or spread across many components | Less clear findings | Report negative results; use broader analysis methods |
+| Labels in the benchmarks are noisy | Lower measured accuracy | Use a second judge and manually review a sample of disagreements |
+| A similar study is published during the project | Reduced novelty | Focus on the combination of calibration, judge-free detection, and causal analysis |
+| Detector is too small to show clear mechanisms | Limited findings | Repeat key experiments on a larger model if the results justify it |
+| **No suitable pretrained SAE for the chosen generator** | Adds several weeks and compute | Choose a generator with an available SAE in Weeks 1–2; if none exists, scope down to one layer and budget for SAE training |
+| **SAE features track topic or style rather than faithfulness** | Features look meaningful but do not detect errors | Use contrastive prefix pairs (faithful vs. unfaithful on the same source), topic-matched controls, and random-feature baselines |
+| **Feature interpretation is subjective** | Weak or disputed labels for features | Pre-register labeling criteria; two annotators; report agreement |
+| **Judge-free signal is weaker than the NLI judge** | Extension does not improve detection | Report the gap and its cause; the NLI judge remains available as a fallback, so the project still produces results |
+| **SAE reconstruction error hides relevant information** | Missed signal | Compare SAE-based detection against a linear probe on raw activations as a control |
 
-### Phase 7: Robustness and Write-up (Weeks 11–12)
+## 8. Success Criteria
 
-- Robustness: logically constructed contradictions (e.g., the ContraTales benchmark, arXiv 2507.23221), cross-dataset transfer, and a second NLI model family if available.
-- Write the paper. Target venue: interpretability or safety workshop first, then a main track.
+- The calibrated detector meets its target error rate on held-out data.
+- At least one internal component is shown to causally influence the detector's decisions, with a measured effect.
+- Detection of early errors (the first third of an answer) improves over the published method.
+- **New:** The judge-free SAE detector matches or exceeds the NLI-based detector on early prefixes, or the gap and its cause are clearly explained.
+- **New:** At least one SAE feature set causally changes faithfulness in generation, with a measured effect beyond random-feature controls.
+- Results are reproducible with released code.
 
-## 4. Experimental Controls (Required)
+## 9. Deliverables
 
-- Length-matched and position-matched baselines, so probes do not track length.
-- Random-direction and random-head ablations.
-- Three or more seeds for probe training; report confidence intervals (bootstrap, 1,000 resamples, as in the base paper).
-- Held-out split for all threshold calibration. Never calibrate and evaluate on the same data.
-- Second NLI judge (e.g., MiniCheck) to check label noise.
+1. Reproduction report and generator/SAE confirmation (Week 2)
+2. Internal signal analysis of the detector (Week 4)
+3. Causal component analysis of the detector (Week 6)
+4. Comparison and calibration results (Week 9)
+5. SAE feature candidates and interpretations (Week 11)
+6. Judge-free detector evaluation (Week 12)
+7. Causal feature intervention and generation results (Week 13)
+8. Draft paper and code release (Week 16)
 
-## 5. Resources and Compute
+## 10. Next Steps
 
-- **Models:** MiniTruePrefixes (1B), LLaMA-3.2-1B/3B/8B-Instruct generators, OLMo 1B/7B for generalization.
-- **Datasets:** RAGTruthPrefixes, SummEditsPrefixes, CNN/DM and XSum (decoding), ContraTales (robustness).
-- **Compute:** Single A100 80GB is sufficient for Phases 1–5. Phase 6 needs about 45 GPU-hours, per the base paper.
-- **Tooling:** TransformerLens or nnsight for activation access; vLLM for decoding; scikit-learn for probes.
-
-## 6. Risks and Mitigations
-
-| Risk | Mitigation |
-|---|---|
-| Probes track length or position, not faithfulness | Length-matched controls, random-direction baselines |
-| Causal effects are small or distributed across many components | Report negative results; use path patching if single-component effects are weak |
-| Base model is too small for clear mechanisms | Replicate on the 3B and 8B generators' representations if a probe is trained on them |
-| Label noise in RAGTruth and SummEdits | Second judge, human spot-check of 100 disagreements |
-| Similar work appears during the project | Differentiate on prefix-level causality and calibrated early-stopping |
-
-## 7. Deliverables Summary
-
-1. Reproduction report (Week 2)
-2. Layer-wise probe results (Week 4)
-3. Causal component map (Week 6)
-4. Failure-mechanism analysis (Week 7)
-5. Detector and calibration comparison (Week 9)
-6. Steering results in controlled decoding (Week 10)
-7. Draft paper and code release (Week 12)
-
-## 8. Immediate Next Steps
-
-1. Clone https://github.com/sapirharary/PrefixNLI and run the evaluation script.
-2. Confirm access to RAGTruth and SummEdits, and check their licenses.
-3. Set up activation extraction for MiniTruePrefixes and verify it on five examples.
-4. Decide the threshold-calibration method (conformal vs. target FNR) before Phase 5.
-5. Share your paper's specific contributions so this plan can be narrowed to what is new in your work.
+1. Manager review of this plan and the decisions in Section 5.
+2. Access the published detector code and benchmark datasets.
+3. Identify a generator model with a matching pretrained SAE, and run a sizing pilot for storage and compute.
+4. Run the first reproduction check within two weeks of approval.
