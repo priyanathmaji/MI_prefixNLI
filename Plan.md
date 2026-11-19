@@ -51,14 +51,16 @@ The result will be a detector that is more reliable, cheaper to run, and explain
 
 **Total duration:** 16 weeks (previously 12; the extension adds 4 weeks).
 
-## 5. Points for Discussion
+## 5. Working Assumptions and Open Choices
 
-1. **Extension:** Feedback on the judge-free SAE extension and the revised 16-week timeline.
-2. **Threshold method:** Input on either a conformal prediction approach (guarantees a target error rate under standard assumptions) or a simpler target-based method. Recommendation: conformal prediction, as it provides a stronger guarantee.
-3. **Generator model:** Thoughts on the generator to use. Recommendation: choose a model for which a pretrained SAE already exists, to avoid training one. This will be verified in Weeks 1–2.
-4. **Target venue:** Thoughts on whether the first target is a workshop (faster, lower bar) or a main conference track (slower, higher bar). Recommendation: workshop first, then main track.
-5. **Compute:** Estimated at roughly 100–140 GPU-hours on a single A100-class GPU (estimate; see Section 6), plus storage for sparse SAE features. Storage will be sized in a Week 2 pilot.
-6. **Ownership:** Thoughts on who will own the code release and data licensing checks.
+These are the planning choices I have made so far. They are listed for reference and can change as the work progresses.
+
+1. **Extension:** The judge-free SAE extension and the 16-week timeline are the current plan.
+2. **Threshold method:** The plan uses conformal prediction, which gives a stronger error-rate guarantee than a simpler target-based method. A simpler method is the fallback if conformal prediction proves impractical.
+3. **Generator model:** The plan uses a generator model that already has a pretrained SAE, so no SAE needs to be trained. This is confirmed in Weeks 1–2.
+4. **Target venue:** The first target is a workshop, which has a lower bar and shorter cycle, followed by a main conference track.
+5. **Compute:** The estimate is roughly 100–140 GPU-hours on a single A100-class GPU, plus storage for sparse SAE features. Storage is sized in a Week 2 pilot.
+6. **Ownership:** The author owns the code release and the data licensing checks.
 
 ## 6. Resources
 
